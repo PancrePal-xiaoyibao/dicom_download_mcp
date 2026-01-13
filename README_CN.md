@@ -87,6 +87,7 @@ python -m dicom_mcp.server
 ```
 
 **配置要求：**
+
 - `DICOM_DEFAULT_OUTPUT_DIR` **[必须修改]**: 使用绝对路径（完整路径）
   - ❌ 不要使用相对路径如 `./dicom_downloads` (相对路径会导致文件保存到 IDE 默认目录)
   - ✅ macOS 示例: `/Users/username/Downloads/dicom_downloads`
@@ -94,6 +95,7 @@ python -m dicom_mcp.server
   - ✅ Windows 示例: `C:\\Users\\username\\Downloads\\dicom_downloads`
 
 此方式的优势：
+
 - 自动处理 Python 依赖检测
 - 首次运行时自动安装所需包
 - 无需手动配置 PYTHONPATH
@@ -128,6 +130,7 @@ python -m dicom_mcp.server
 ```
 
 **预期下载时间** (根据参数和影像大小而异):
+
 - 快速模式 (2 轮, 30ms): 1-5 分钟
 - 平衡模式 (3 轮, 40ms): 2-8 分钟  [推荐]
 - 完整模式 (5 轮, 80ms): 4-15 分钟
@@ -170,6 +173,7 @@ dicom_mcp/
 从单个 URL 下载 DICOM 影像。
 
 **参数:**
+
 - `url` (必需): 医学影像查看器 URL
 - `output_dir` (默认: `./dicom_downloads`): 保存文件的目录
 - `provider` (默认: `auto`): 提供者类型 (auto, tz, fz, nyfy, cloud)
@@ -181,6 +185,7 @@ dicom_mcp/
 - `step_wait_ms` (默认: `40`): 帧间延迟 (毫秒) - 帧播放时的延迟
 
 **返回:**
+
 - `success`: 是否下载成功
 - `output_dir`: 包含下载文件的目录
 - `zip_path`: ZIP 压缩包路径 (如创建)
@@ -192,6 +197,7 @@ dicom_mcp/
 从多个 URL 批量下载。
 
 **参数:**
+
 - `urls` (必需): 要下载的 URL 列表
 - `output_parent` (默认: `./dicom_downloads`): 所有下载的父目录
 - `provider` (默认: `auto`): 提供者类型
@@ -209,9 +215,11 @@ dicom_mcp/
 识别 URL 属于哪个提供者。
 
 **参数:**
+
 - `url` (必需): 要检查的 URL
 
 **返回:**
+
 - `detected_provider`: 提供者标识符
 - `provider_info`: 提供者详细信息
 - `is_auto_detected`: 检测是否成功
@@ -227,9 +235,11 @@ dicom_mcp/
 检查 URL 是否来自支持的提供者。
 
 **参数:**
+
 - `url` (必需): 要验证的 URL
 
 **返回:**
+
 - `valid`: URL 是否来自支持的提供者
 - `provider`: 有效时的检测到的提供者
 - `error`: 无效时的错误消息
@@ -297,7 +307,8 @@ batch_download_dicom(
 ```
 
 **密码功能特性** (v1.2.7):
-- ✅ **自动识别**: 支持`安全码:`、`密码:`、`password:`、`code:`等格式
+
+- ✅ **自动识别**: 支持 `安全码:`、`密码:`、`password:`、`code:`等格式
 - ✅ **自动输入**: 虚拟键盘自动点击输入密码
 - ✅ **智能提交**: 识别自动提交机制,优化等待时间
 - ✅ **手动兜底**: 自动输入失败时支持手动输入(headless=false)
@@ -352,6 +363,7 @@ Claude 提示:
 ```
 
 MCP 服务器会：
+
 - 设置 `mode="diag"` 参数
 - 传递给基层提供者脚本
 - 仅返回诊断序列文件
@@ -365,6 +377,7 @@ Claude 提示:
 ```
 
 MCP 服务器会：
+
 - 设置 `create_zip=False`
 - 返回每个下载的目录路径
 - 跳过 ZIP 压缩包创建
@@ -378,6 +391,7 @@ Claude 提示:
 ```
 
 MCP 服务器会：
+
 - 将密码传递给云提供者
 - 认证并下载
 - 返回下载的文件
@@ -390,6 +404,7 @@ Claude 提示:
 ```
 
 MCP 服务器会使用：
+
 - max_rounds=2 (更少迭代 = 更快)
 - step_wait_ms=30 (更短延迟)
 
@@ -401,6 +416,7 @@ Claude 提示:
 ```
 
 MCP 服务器会使用：
+
 - max_rounds=5 (更多迭代 = 更完整)
 - step_wait_ms=80 (更长延迟 = 更稳定)
 
@@ -409,6 +425,7 @@ MCP 服务器会使用：
 ### 问题: "找不到模块"错误
 
 **解决方案**: 确保安装完成：
+
 ```bash
 cd /path/to/dicom_mcp
 pip install -e .
@@ -417,6 +434,7 @@ pip install -e .
 ### 问题: Playwright chromium 未找到
 
 **解决方案**: 安装浏览器：
+
 ```bash
 playwright install chromium
 ```
@@ -424,6 +442,7 @@ playwright install chromium
 ### 问题: Claude Desktop 无法连接
 
 **解决方案**:
+
 1. 验证配置在 Claude Desktop 设置中正确
 2. 确保 PYTHONPATH 环境变量设置正确
 3. 重启 Claude Desktop
@@ -432,7 +451,8 @@ playwright install chromium
 
 **原因**: 医学影像分享链接通常在一段时间后过期（数天至数周）
 
-**解决方案**: 
+**解决方案**:
+
 - 从医学提供者获取新的有效分享链接
 - 确保 URL 有效且不是太旧
 
@@ -440,13 +460,15 @@ playwright install chromium
 
 **原因**: 某些云提供者需要显式密码
 
-**解决方案**: 
+**解决方案**:
+
 - 在下载请求中使用 password 参数
 - 确保密码格式正确
 
 ## 部署
 
 详见 [DEPLOYMENT.md](DEPLOYMENT.md) 了解：
+
 - 本地开发部署
 - PyPI 包管理器安装
 - Claude Desktop 配置
@@ -514,6 +536,7 @@ multi_download.py (原始项目)
 ## 更新日志
 
 ### v1.0.0 (2025-01-13)
+
 - ✅ 完整的中英文文档
 - ✅ 两种部署方式支持
 - ✅ 非商业许可证
@@ -523,6 +546,7 @@ multi_download.py (原始项目)
 
 ## 联系方式
 
-- 📧 Email: support@dicom-mcp.com
-- 🐛 Issue: https://github.com/hengqujushi/dicom_mcp/issues
-- 📖 文档: https://github.com/hengqujushi/dicom_mcp#readme
+- 🐛 Issue: https://github.com/PancrePal-xiaoyibao/dicom_download_mcp/issues
+- 📖 文档: https://github.com/PancrePal-xiaoyibao/dicom_download_mcp#readme
+
+感谢开发者Sam的贡献和社区支持！
