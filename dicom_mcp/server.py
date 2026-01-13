@@ -487,11 +487,11 @@ async def batch_download_dicom(request: BatchDownloadRequest) -> list[DownloadRe
     extracted_password = None
     
     for url in request.urls:
-        clean_url, pwd = _extract_password_from_url(url)
+        clean_url, extracted_pwd = _extract_password_from_url(url)
         clean_urls.append(clean_url)
         # Use first extracted password if no explicit password provided
-        if not extracted_password and pwd:
-            extracted_password = pwd
+        if not extracted_password and extracted_pwd:
+            extracted_password = extracted_pwd
     
     password = request.password or extracted_password
     
