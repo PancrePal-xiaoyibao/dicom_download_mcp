@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "dicom-downloader": {
+      "command": "python",
+      "args": ["-m", "dicom_mcp.server"],
+      "env": {
+        "PYTHONPATH": "/Users/qinxiaoqiang/Downloads/dicom_mcp:/Users/qinxiaoqiang/Downloads/dicom_download"
+      }
+    }
+  }
+}

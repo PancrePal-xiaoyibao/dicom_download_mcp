@@ -1,0 +1,24 @@
+include README.md
+include LICENSE
+include CHANGELOG.md
+include DEPLOYMENT.md
+include SETUP_GUIDE.md
+include QUICKSTART.md
+include ARCHITECTURE.md
+include CONFIG_PARAMETERS.md
+include PROGRESS_FEEDBACK.md
+include TESTING.md
+include MANUAL_TESTING.md
+include QUICK_REFERENCE.md
+include PROJECT_STRUCTURE.md
+include CONVERSION_SUMMARY.md
+
+recursive-include dicom_mcp *.py
+recursive-include tests *.py
+
+exclude .git
+exclude .gitignore
+exclude .pytest_cache
+exclude __pycache__
+exclude *.pyc
+exclude .DS_Store

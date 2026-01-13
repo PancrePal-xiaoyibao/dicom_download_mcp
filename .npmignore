@@ -1,0 +1,66 @@
+# Development files
+.git/
+.gitignore
+.DS_Store
+.pytest_cache/
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+
+# Test files
+tests/
+test_*.py
+*.test.js
+pytest.ini
+
+# Documentation
+CONTRIBUTING.md
+PUBLISH_GUIDE.md
+DEPLOYMENT.md
+ARCHITECTURE.md
+PROJECT_STRUCTURE.md
+TESTING.md
+MANUAL_TESTING.md
+CONVERSION_SUMMARY.md
+
+# Config and log files
+.env
+.env.local
+*.log
+run.log
+download.log
+
+# Editor and IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build outputs
+/dist
+/build
+*.egg-info
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# npm specific
+npm-debug.log
+yarn-error.log
+
+# Playwright
+browsers/
+
+# Node modules (don't include, users will npm install)
+node_modules/
+
+# Example/temp files
+urls_*.txt
+urls.txt
+*.tmp
+temp/

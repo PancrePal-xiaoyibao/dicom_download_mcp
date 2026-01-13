@@ -1,0 +1,58 @@
+{
+  "name": "dicom-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for DICOM image downloading from multiple medical imaging sources",
+  "main": "lib/index.js",
+  "type": "module",
+  "bin": {
+    "dicom-mcp": "./bin/dicom-mcp.js"
+  },
+  "scripts": {
+    "start": "node bin/dicom-mcp.js",
+    "test": "node test/test-runner.js",
+    "build": "npm run validate",
+    "validate": "node scripts/validate.js",
+    "postinstall": "node scripts/postinstall.js"
+  },
+  "keywords": [
+    "mcp",
+    "dicom",
+    "medical-imaging",
+    "model-context-protocol",
+    "ai-assistant",
+    "claude"
+  ],
+  "author": "DICOM Download Contributors",
+  "license": "DICOM-MCP Non-Commercial License",
+  "homepage": "https://github.com/hengqujushi/dicom_mcp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hengqujushi/dicom_mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hengqujushi/dicom_mcp/issues"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "which": "^4.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "scripts",
+    "node_modules",
+    "README.md",
+    "README_CN.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "preferGlobal": true,
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  }
+}
