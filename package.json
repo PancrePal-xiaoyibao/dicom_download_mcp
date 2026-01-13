@@ -1,6 +1,6 @@
 {
   "name": "dicom-mcp",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "MCP server for DICOM image downloading from multiple medical imaging sources",
   "main": "lib/index.js",
   "type": "module",

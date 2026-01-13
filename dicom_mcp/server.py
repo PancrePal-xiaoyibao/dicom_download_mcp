@@ -2,12 +2,13 @@
 
 import os
 import sys
+import json
 import asyncio
 import tempfile
 import subprocess
 from pathlib import Path
 from urllib.parse import urlparse
-from typing import Optional
+from typing import Optional, Union, Dict
 from dataclasses import dataclass
 
 from mcp.server.fastmcp import FastMCP
@@ -116,7 +117,13 @@ class DownloadRequest(BaseModel):
 
 
 class BatchDownloadRequest(BaseModel):
-    """Request to download from multiple URLs."""
+    """Request to download from multiple URLs.
+    
+    密码支持三种模式：
+    1. 全局密码：password="1234"，所有URL共用
+    2. URL密码映射：passwords={"url1": "pwd1", "url2": "pwd2"}
+    3. 自动读文件：密码通过 urls.txt 中 "URL 安全码:xxx" 格式指定
+    """
 
     urls: list[str] = Field(description="List of URLs to download from")
     output_parent: str = Field(
@@ -129,7 +136,12 @@ class BatchDownloadRequest(BaseModel):
     mode: str = Field(default="all", description="Download mode")
     headless: bool = Field(default=True, description="Run in headless mode")
     password: Optional[str] = Field(
-        default=None, description="Password/share code if required by the site"
+        default=None, 
+        description="[废弃] 全局密码（对所有URL生效）。建议改用 passwords 字典"
+    )
+    passwords: Optional[Dict[str, Optional[str]]] = Field(
+        default=None,
+        description="[推荐] URL到密码的映射字典。格式: {'url1': 'pwd1', 'url2': None, ...}"
     )
     create_zip: bool = Field(default=True, description="Create ZIP archives")
     max_rounds: int = Field(
@@ -236,11 +248,20 @@ async def run_multi_download(
     mode: str = "all",
     headless: bool = True,
     password: Optional[str] = None,
+    passwords: Optional[Dict[str, Optional[str]]] = None,
     create_zip: bool = True,
     max_rounds: int = 3,
     step_wait_ms: int = 40,
 ) -> list[DownloadResult]:
-    """Run multi_download.py with given parameters."""
+    """
+    Run multi_download.py with given parameters.
+    
+    ✨ 改进：支持 passwords 字典，确保URL与密码的准确映射
+    
+    参数说明：
+    - password: [废弃] 全局密码，对所有URL生效
+    - passwords: [推荐] URL->密码映射字典，确保一一对应
+    """
 
     script_path = DICOM_DOWNLOAD_PATH / "multi_download.py"
     if not script_path.exists():
@@ -253,12 +274,26 @@ async def run_multi_download(
             )
         ]
 
-    # Create temporary URLs file
+    # ✨ 安全性改进：通过环境变量传递密码（而非磁盘文件）
+    # 构建 URL -> 密码的字典
+    url_password_dict: Dict[str, Optional[str]] = {}
+    for url in urls:
+        pwd = None
+        if passwords and url in passwords:
+            pwd = passwords[url]
+        elif password:
+            pwd = password
+        url_password_dict[url] = pwd
+    
+    # 序列化为 JSON 并设置环境变量（仅包含有密码的项以减小体积）
+    passwords_json = json.dumps({url: pwd for url, pwd in url_password_dict.items() if pwd})
+    
+    # 生成纯 urls.txt（不含密码）
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".txt", delete=False, dir=output_parent
     ) as f:
         for url in urls:
-            f.write(url + "\n")
+            f.write(f"{url}\n")
         urls_file = f.name
 
     try:
@@ -281,10 +316,6 @@ async def run_multi_download(
         else:
             cmd.append("--no-headless")
 
-        if password:
-            # Use cloud-password for fz and cloud providers, others may not need password
-            cmd.extend(["--cloud-password", password])
-
         if not create_zip:
             cmd.append("--no-zip")
         
@@ -292,6 +323,13 @@ async def run_multi_download(
         cmd.extend(["--max-rounds", str(max_rounds)])
         cmd.extend(["--step-wait-ms", str(step_wait_ms)])
 
+        # ✨ 安全性改进：通过环境变量传递密码
+        env = os.environ.copy()
+        if passwords_json:
+            env["DICOM_URL_PASSWORDS_JSON"] = passwords_json
+            pwd_count = len(json.loads(passwords_json))
+            print(f"[run_multi_download] ✅ 通过环境变量传递 {pwd_count} 个密码映射（非磁盘文件）", file=sys.stderr)
+        
         # Show progress banner (to stderr, visible to Claude)
         print("\n" + "=" * 70, file=sys.stderr)
         print("🚀 DICOM 下载开始", file=sys.stderr)
@@ -307,6 +345,7 @@ async def run_multi_download(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            env=env,
         )
 
         # Stream stdout in real time
@@ -391,7 +430,7 @@ async def run_multi_download(
 
 def _extract_password_from_url(url: str) -> tuple[str, Optional[str]]:
     """
-    Extract password/security code from URL string.
+    Extract security code from URL string.
     
     Supports multiple formats:
     - URL 安全码:8492 or URL 安全码：8492
@@ -400,11 +439,11 @@ def _extract_password_from_url(url: str) -> tuple[str, Optional[str]]:
     - URL code:8492 or URL code：8492
     - URL 验证码:8492 or URL 验证码：8492
     
-    Returns: (clean_url, password)
+    Returns: (clean_url, security_code)
     """
     import re
     
-    # Pattern: look for various password indicators with both half-width and full-width colons
+    # Pattern: look for various security code indicators with both half-width and full-width colons
     patterns = [
         r'\s*安全码[：:]\s*(\d+)',      # 安全码:8492 or 安全码：8492
         r'\s*密码[：:]\s*(\d+)',        # 密码:8492 or 密码：8492
@@ -413,19 +452,19 @@ def _extract_password_from_url(url: str) -> tuple[str, Optional[str]]:
         r'\s*code[：:]\s*(\d+)',        # code:8492 or code：8492
     ]
     
-    password = None
+    security_code = None
     clean_url = url
     
     for pattern in patterns:
         match = re.search(pattern, url)
         if match:
-            password = match.group(1)
-            # Remove password from URL
+            security_code = match.group(1)
+            # Remove security code from URL
             clean_url = re.sub(pattern, '', url).strip()
-            print(f"[dicom-mcp] 提取密码: {password}", file=sys.stderr)
+            print(f"[dicom-mcp] 提取安全码: {security_code}", file=sys.stderr)
             break
     
-    return clean_url, password
+    return clean_url, security_code
 
 
 # ============================================================================
@@ -444,21 +483,41 @@ async def download_dicom(request: DownloadRequest) -> DownloadResult:
     - nyfy: 宁夏总医院 (zhyl.nyfy.com.cn)
     - cloud: *.medicalimagecloud.com and other cloud-based systems
     
-    Automatically extracts password/security code from URL if present.
-    Formats: "URL 安全码:8492", "URL password:8492", etc.
+    **密码支持**：
+    1. 显式指定：password="安全码" 参数
+    2. URL中提取：自动识别 "URL 安全码:8492"、"URL password:8492" 等格式
+    3. 优先级：显式指定 > URL中提取
+    
+    **示例**：
+    ```python
+    # 方式1：显式指定密码
+    request = DownloadRequest(
+        url="https://hospital.com/viewer?id=123",
+        password="8492"
+    )
+    
+    # 方式2：从URL提取密码
+    request = DownloadRequest(
+        url="https://hospital.com/viewer?id=123 安全码:8492"
+    )
+    ```
     """
-    # Auto-extract password from URL if not explicitly provided
-    clean_url, extracted_password = _extract_password_from_url(request.url)
-    password = request.password or extracted_password
+    # Auto-extract security code from URL if not explicitly provided
+    clean_url, extracted_code = _extract_password_from_url(request.url)
+    security_code = request.password or extracted_code
     
     os.makedirs(request.output_dir, exist_ok=True)
+    
+    # ✨ 改进：使用 passwords 字典保留映射关系
+    passwords_dict = {clean_url: security_code}
+    
     results = await run_multi_download(
         [clean_url],
         request.output_dir,
         provider=request.provider or "auto",
         mode=request.mode,
         headless=request.headless,
-        password=password,
+        passwords=passwords_dict,
         create_zip=request.create_zip,
         max_rounds=request.max_rounds,
         step_wait_ms=request.step_wait_ms,
@@ -475,25 +534,71 @@ async def download_dicom(request: DownloadRequest) -> DownloadResult:
 async def batch_download_dicom(request: BatchDownloadRequest) -> list[DownloadResult]:
     """
     Download DICOM images from multiple URLs in batch.
-
-    Each URL gets its own subdirectory. Supports auto-detection of provider
-    based on domain, or manual provider specification.
     
-    Automatically extracts password/security code from URL if present.
-    Formats: "URL 安全码:8492", "URL password:8492", etc.
+    **多链接+密码映射支持**（确保URL与密码的准确匹配）
+    
+    Each URL gets its own subdirectory with its corresponding password.
+    Supports auto-detection of provider based on domain, or manual provider specification.
+    
+    **密码配置方式**（按优先级）：
+    1. passwords 字典映射（推荐）：URLs 与密码一一对应
+       - 格式：passwords={"url1": "pwd1", "url2": "pwd2", "url3": None}
+       - 优势：清晰明确，不易出错，最安全
+       - 最佳实践：生产环境强烈推荐
+
+    2. password 全局密码：所有 URLs 共用同一密码
+       - 格式：password="1234"
+       - 适用场景：所有URL需要同一密码
+
+    3. URL中嵌入密码：自动提取
+       - 格式："URL 安全码:8492"、"URL password:8492"
+       - 自动处理，无需额外配置
+
+    **密码优先级**（高→低）：
+    passwords字典 > password全局 > URL中提取 > None(无密码)
+    
+    **示例**：
+    ```python
+    # ✨ 推荐：多URL多密码精确映射
+    request = BatchDownloadRequest(
+        urls=[
+            "https://hospital1.com/viewer?id=A",
+            "https://hospital2.com/viewer?id=B",
+            "https://hospital3.com/viewer?id=C"
+        ],
+        passwords={
+            "https://hospital1.com/viewer?id=A": "password_A",
+            "https://hospital2.com/viewer?id=B": "password_B",
+            "https://hospital3.com/viewer?id=C": None  # 无密码
+        }
+    )
+    # 结果：URL_A + password_A、URL_B + password_B、URL_C + None
+    ```
     """
-    # Auto-extract passwords from URLs
+    # ========== 密码处理逻辑 ==========
     clean_urls = []
-    extracted_password = None
+    url_password_dict: Dict[str, Optional[str]] = {}
     
     for url in request.urls:
-        clean_url, extracted_pwd = _extract_password_from_url(url)
+        clean_url, code = _extract_password_from_url(url)
         clean_urls.append(clean_url)
-        # Use first extracted password if no explicit password provided
-        if not extracted_password and extracted_pwd:
-            extracted_password = extracted_pwd
-    
-    password = request.password or extracted_password
+        
+        # 优先级：passwords字典 > password全局 > URL中提取的密码
+        if request.passwords and clean_url in request.passwords:
+            pwd = request.passwords[clean_url]
+        elif request.passwords and url in request.passwords:
+            pwd = request.passwords[url]
+        elif request.password:
+            pwd = request.password
+        else:
+            pwd = code
+        
+        url_password_dict[clean_url] = pwd
+        pwd_display = f"({len(pwd)} 位)" if pwd else "(无密码)"
+        print(
+            f"[batch_download_dicom] {clean_url[:50]}... -> {pwd_display}",
+            file=sys.stderr
+        )
     
     os.makedirs(request.output_parent, exist_ok=True)
     return await run_multi_download(
@@ -502,7 +607,7 @@ async def batch_download_dicom(request: BatchDownloadRequest) -> list[DownloadRe
         provider=request.provider,
         mode=request.mode,
         headless=request.headless,
-        password=password,
+        passwords=url_password_dict,
         create_zip=request.create_zip,
         max_rounds=request.max_rounds,
         step_wait_ms=request.step_wait_ms,
