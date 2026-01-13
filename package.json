@@ -1,6 +1,6 @@
 {
   "name": "dicom-mcp",
-  "version": "1.1.0",
+  "version": "1.2.5",
   "description": "MCP server for DICOM image downloading from multiple medical imaging sources",
   "main": "lib/index.js",
   "type": "module",
@@ -46,6 +46,7 @@
     "lib",
     "scripts",
     "dicom_mcp",
+    "dicom_download",
     "pyproject.toml",
     "README.md",
     "README_CN.md",

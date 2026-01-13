@@ -66,7 +66,9 @@ Add to your MCP client configuration (e.g., Claude Desktop):
 
 #### Method 2: NPX Deployment (Recommended)
 
-Using npx, you can run the MCP server directly without manual setup:
+Using npx, you can run the MCP server directly without manual setup.
+
+**⚠️ IMPORTANT: You MUST modify `DICOM_DEFAULT_OUTPUT_DIR` to use an absolute path. Do NOT use relative paths like `./dicom_downloads`.**
 
 ```json
 {
@@ -75,7 +77,7 @@ Using npx, you can run the MCP server directly without manual setup:
       "command": "npx",
       "args": ["-y", "dicom-mcp"],
       "env": {
-        "DICOM_DEFAULT_OUTPUT_DIR": "./dicom_downloads",
+        "DICOM_DEFAULT_OUTPUT_DIR": "/Users/your-username/Downloads/dicom_downloads",
         "DICOM_DEFAULT_MAX_ROUNDS": "3",
         "DICOM_DEFAULT_STEP_WAIT_MS": "40"
       }
@@ -84,13 +86,18 @@ Using npx, you can run the MCP server directly without manual setup:
 }
 ```
 
+**Configuration Requirements:**
+- `DICOM_DEFAULT_OUTPUT_DIR` **[REQUIRED TO MODIFY]**: Use absolute path (e.g., `/Users/username/Downloads/dicom_downloads`)
+  - ❌ Do NOT use relative paths like `./dicom_downloads` (files will be saved to IDE default directories)
+  - ✅ Use full paths: `/Users/username/...` (macOS/Linux) or `C:\\Users\\username\\...` (Windows)
+
 This method:
 - Automatically handles Python dependency detection
 - Installs required packages on first run
 - No manual PYTHONPATH configuration needed
 - Works across different operating systems
 - Supports environment variables for default parameters:
-  - `DICOM_DEFAULT_OUTPUT_DIR`: Default directory for downloaded files (default: `./dicom_downloads`)
+  - `DICOM_DEFAULT_OUTPUT_DIR`: Directory for downloaded files (MUST BE ABSOLUTE PATH)
   - `DICOM_DEFAULT_MAX_ROUNDS`: Default scan rounds (default: `3`)
   - `DICOM_DEFAULT_STEP_WAIT_MS`: Default delay between frames in ms (default: `40`)
 
@@ -134,11 +141,13 @@ Download DICOM images from a single URL.
 
 **Parameters:**
 - `url` (required): Medical imaging viewer URL
+  - **Auto-detects security code**: Include code in URL like `URL 安全码:8492` and it will be automatically extracted
+  - Supports formats: `安全码:8492`, `密码:8492`, `password:8492`, `code:8492`, `验证码:8492`
 - `output_dir` (default: `./dicom_downloads`): Directory to save downloaded DICOM files
 - `provider` (default: `auto`): Provider type (auto, tz, fz, nyfy, cloud)
 - `mode` (default: `all`): Download mode (all, diag, nondiag)
 - `headless` (default: `true`): Run browser in headless mode (no UI)
-- `password` (optional): Share password/code if required by the site
+- `password` (optional): Share password/code if required (auto-extracted from URL if present)
 - `create_zip` (default: `true`): Create ZIP archive of downloaded files
 - `max_rounds` (default: `3`): Maximum number of scan rounds (扫描次数) - controls frame-by-frame playback iterations
 - `step_wait_ms` (default: `40`): Delay between steps in milliseconds (延迟时间) - delay between frames during playback
@@ -156,10 +165,13 @@ Download from multiple URLs in batch.
 
 **Parameters:**
 - `urls` (required): List of URLs to download from
+  - **Auto-detects security code**: Include code in URL like `URL 安全码:8492` and it will be automatically extracted
+  - Supports formats: `安全码:8492`, `密码:8492`, `password:8492`, `code:8492`, `验证码:8492`
 - `output_parent` (default: `./dicom_downloads`): Parent directory for all downloads (each URL gets its own subdirectory)
 - `provider` (default: `auto`): Provider type (auto, tz, fz, nyfy, cloud)
 - `mode` (default: `all`): Download mode (all, diag, nondiag)
 - `headless` (default: `true`): Run in headless mode (no UI)
+- `password` (optional): Share password/code if required (auto-extracted from URLs if present)
 - `create_zip` (default: `true`): Create ZIP archives for each URL
 - `max_rounds` (default: `3`): Maximum number of scan rounds (扫描次数) - applied to all URLs
 - `step_wait_ms` (default: `40`): Delay between steps in milliseconds (延迟时间) - applied to all URLs

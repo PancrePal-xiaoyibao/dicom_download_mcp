@@ -13,31 +13,49 @@ from dataclasses import dataclass
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, Field
 
-# Resolve path to dicom_download - supports two deployment methods:
+# Resolve path to dicom_download - supports multiple deployment methods:
 # 1. Local development: git clone后，dicom_download 在 dicom_mcp 的上级目录
-# 2. Installed package: 从 PyPI/npm 安装时，dicom_download 作为依赖已安装
+# 2. NPM package: npx安装时，dicom_download 在node_modules同级
+# 3. Installed package: 从 PyPI 安装时，dicom_download 作为依赖已安装
 def _resolve_dicom_download_path() -> Path:
     """Resolve path to dicom_download module."""
-    # Method 1: Local development (git clone)
-    local_dev_path = Path(__file__).parent.parent.parent / "dicom_download"
-    if local_dev_path.exists():
+    current_dir = Path(__file__).parent
+    
+    # Method 1: Local development - check parent directory
+    local_dev_path = current_dir.parent.parent / "dicom_download"
+    if local_dev_path.exists() and (local_dev_path / "multi_download.py").exists():
+        print(f"[dicom-mcp] Found dicom_download at: {local_dev_path}", file=sys.stderr)
         return local_dev_path
     
-    # Method 2: Check site-packages or installation location
+    # Method 2: NPM package - check in the same package directory
+    npm_pkg_path = current_dir.parent / "dicom_download"
+    if npm_pkg_path.exists() and (npm_pkg_path / "multi_download.py").exists():
+        print(f"[dicom-mcp] Found dicom_download at: {npm_pkg_path}", file=sys.stderr)
+        return npm_pkg_path
+    
+    # Method 3: Check site-packages or installation location
     try:
         import dicom_download as dd_module
         if dd_module.__file__:
-            return Path(dd_module.__file__).parent
+            dd_path = Path(dd_module.__file__).parent
+            if (dd_path / "multi_download.py").exists():
+                print(f"[dicom-mcp] Found dicom_download at: {dd_path}", file=sys.stderr)
+                return dd_path
     except ImportError:
         pass
     
-    # Method 3: Try to find in Python path
+    # Method 4: Try to find in Python path
     for path_item in sys.path:
         candidate = Path(path_item) / "dicom_download"
-        if candidate.exists():
+        if candidate.exists() and (candidate / "multi_download.py").exists():
+            print(f"[dicom-mcp] Found dicom_download at: {candidate}", file=sys.stderr)
             return candidate
     
-    # Fallback to local dev path even if not exists
+    # Fallback - return the most likely path with diagnostic message
+    print(f"[dicom-mcp] WARNING: Could not find dicom_download. Tried paths:", file=sys.stderr)
+    print(f"  1. {local_dev_path}", file=sys.stderr)
+    print(f"  2. {npm_pkg_path}", file=sys.stderr)
+    print(f"  3. Python path entries", file=sys.stderr)
     return local_dev_path
 
 DICOM_DOWNLOAD_PATH = _resolve_dicom_download_path()
@@ -110,6 +128,9 @@ class BatchDownloadRequest(BaseModel):
     )
     mode: str = Field(default="all", description="Download mode")
     headless: bool = Field(default=True, description="Run in headless mode")
+    password: Optional[str] = Field(
+        default=None, description="Password/share code if required by the site"
+    )
     create_zip: bool = Field(default=True, description="Create ZIP archives")
     max_rounds: int = Field(
         default=_DEFAULT_MAX_ROUNDS,
@@ -197,11 +218,11 @@ async def _stream_output(stream, label: str) -> str:
                 break
             text = line.decode("utf-8", errors="ignore").rstrip()
             if text:
-                # Print key progress lines
+                # Print key progress lines to stderr (not stdout, which is for MCP JSON)
                 if any(keyword in text for keyword in 
                        ["下载", "provider=", "URL", "成功", "失败", "文件", 
                         ">>>", "###", "错误", "Error", "WARNING"]):
-                    print(f"   {text}")
+                    print(f"   {text}", file=sys.stderr)
                 output.append(text)
     except Exception:
         pass
@@ -214,6 +235,7 @@ async def run_multi_download(
     provider: str = "auto",
     mode: str = "all",
     headless: bool = True,
+    password: Optional[str] = None,
     create_zip: bool = True,
     max_rounds: int = 3,
     step_wait_ms: int = 40,
@@ -259,6 +281,9 @@ async def run_multi_download(
         else:
             cmd.append("--no-headless")
 
+        if password:
+            cmd.extend(["--password", password])
+
         if not create_zip:
             cmd.append("--no-zip")
         
@@ -266,14 +291,15 @@ async def run_multi_download(
         cmd.extend(["--max-rounds", str(max_rounds)])
         cmd.extend(["--step-wait-ms", str(step_wait_ms)])
 
-        # Show progress banner
-        print("\n" + "=" * 70)
-        print("🚀 DICOM 下载开始")
-        print("=" * 70)
-        print(f"📍 下载数量: {len(urls)} 个URL")
-        print(f"📁 输出目录: {output_parent}")
-        print(f"⚙️  扫描次数: {max_rounds}, 帧间延迟: {step_wait_ms}ms")
-        print("⏳ 请稍候，下载中... (可能需要 2-10 分钟)\n")
+        # Show progress banner (to stderr, visible to Claude)
+        print("\n" + "=" * 70, file=sys.stderr)
+        print("🚀 DICOM 下载开始", file=sys.stderr)
+        print("=" * 70, file=sys.stderr)
+        print(f"📍 下载数量: {len(urls)} 个URL", file=sys.stderr)
+        print(f"📁 输出目录: {output_parent}", file=sys.stderr)
+        print(f"⚙️  扫描次数: {max_rounds}, 帧间延迟: {step_wait_ms}ms", file=sys.stderr)
+        print("⏳ 请稍候，下载中... (可能需要 2-10 分钟)", file=sys.stderr)
+        print("", file=sys.stderr)
 
         # Run subprocess with real-time output streaming
         process = await asyncio.create_subprocess_exec(
@@ -291,16 +317,20 @@ async def run_multi_download(
         stderr = await task_stderr
 
         if returncode == 0:
-            print("\n" + "=" * 70)
-            print("✅ 下载完成！处理结果中...")
-            print("=" * 70 + "\n")
+            print("\n" + "=" * 70, file=sys.stderr)
+            print("✅ 下载完成！", file=sys.stderr)
+            print("=" * 70, file=sys.stderr)
+            print("📊 处理结果中...", file=sys.stderr)
+            print("", file=sys.stderr)
             
             # Parse output directories from stdout
             results = []
-            for url in urls:
+            for idx, url in enumerate(urls, 1):
                 # Extract share_id and construct output dir
                 from common_utils import extract_share_id
 
+                print(f"[{idx}/{len(urls)}] 处理: {url}", file=sys.stderr)
+                
                 share_id = extract_share_id(url)
                 out_dir = os.path.join(output_parent, share_id)
                 file_count = count_files_recursive(out_dir)
@@ -310,6 +340,8 @@ async def run_multi_download(
                     else None
                 )
 
+                print(f"  ✓ 已保存 {file_count} 个文件到: {out_dir}", file=sys.stderr)
+                
                 results.append(
                     DownloadResult(
                         success=True,
@@ -320,13 +352,21 @@ async def run_multi_download(
                         file_count=file_count,
                     )
                 )
+            
+            # Final summary
+            total_files = sum(r.file_count or 0 for r in results)
+            print("=" * 70, file=sys.stderr)
+            print(f"📈 汇总: 共下载 {total_files} 个文件", file=sys.stderr)
+            print("=" * 70, file=sys.stderr)
+            print("", file=sys.stderr)
             return results
         else:
             error_msg = stderr if stderr else "Unknown error"
-            print("\n" + "=" * 70)
-            print("❌ 下载失败")
-            print("=" * 70)
-            print(f"错误信息: {error_msg}\n")
+            print("\n" + "=" * 70, file=sys.stderr)
+            print("❌ 下载失败", file=sys.stderr)
+            print("=" * 70, file=sys.stderr)
+            print(f"错误信息: {error_msg}", file=sys.stderr)
+            print("", file=sys.stderr)
             return [
                 DownloadResult(
                     success=False,
@@ -344,6 +384,50 @@ async def run_multi_download(
 
 
 # ============================================================================
+# Helper Functions for Password Extraction
+# ============================================================================
+
+
+def _extract_password_from_url(url: str) -> tuple[str, Optional[str]]:
+    """
+    Extract password/security code from URL string.
+    
+    Supports multiple formats:
+    - URL 安全码:8492 or URL 安全码：8492
+    - URL 密码:8492 or URL 密码：8492
+    - URL password:8492 or URL password：8492
+    - URL code:8492 or URL code：8492
+    - URL 验证码:8492 or URL 验证码：8492
+    
+    Returns: (clean_url, password)
+    """
+    import re
+    
+    # Pattern: look for various password indicators with both half-width and full-width colons
+    patterns = [
+        r'\s*安全码[：:]\s*(\d+)',      # 安全码:8492 or 安全码：8492
+        r'\s*密码[：:]\s*(\d+)',        # 密码:8492 or 密码：8492
+        r'\s*验证码[：:]\s*(\d+)',      # 验证码:8492 or 验证码：8492
+        r'\s*password[：:]\s*(\S+)',    # password:8492 or password：8492
+        r'\s*code[：:]\s*(\d+)',        # code:8492 or code：8492
+    ]
+    
+    password = None
+    clean_url = url
+    
+    for pattern in patterns:
+        match = re.search(pattern, url)
+        if match:
+            password = match.group(1)
+            # Remove password from URL
+            clean_url = re.sub(pattern, '', url).strip()
+            print(f"[dicom-mcp] 提取密码: {password}", file=sys.stderr)
+            break
+    
+    return clean_url, password
+
+
+# ============================================================================
 # MCP Tools
 # ============================================================================
 
@@ -358,14 +442,22 @@ async def download_dicom(request: DownloadRequest) -> DownloadResult:
     - fz: 复肿 (ylyyx.shdc.org.cn)
     - nyfy: 宁夏总医院 (zhyl.nyfy.com.cn)
     - cloud: *.medicalimagecloud.com and other cloud-based systems
+    
+    Automatically extracts password/security code from URL if present.
+    Formats: "URL 安全码:8492", "URL password:8492", etc.
     """
+    # Auto-extract password from URL if not explicitly provided
+    clean_url, extracted_password = _extract_password_from_url(request.url)
+    password = request.password or extracted_password
+    
     os.makedirs(request.output_dir, exist_ok=True)
     results = await run_multi_download(
-        [request.url],
+        [clean_url],
         request.output_dir,
         provider=request.provider or "auto",
         mode=request.mode,
         headless=request.headless,
+        password=password,
         create_zip=request.create_zip,
         max_rounds=request.max_rounds,
         step_wait_ms=request.step_wait_ms,
@@ -385,14 +477,31 @@ async def batch_download_dicom(request: BatchDownloadRequest) -> list[DownloadRe
 
     Each URL gets its own subdirectory. Supports auto-detection of provider
     based on domain, or manual provider specification.
+    
+    Automatically extracts password/security code from URL if present.
+    Formats: "URL 安全码:8492", "URL password:8492", etc.
     """
+    # Auto-extract passwords from URLs
+    clean_urls = []
+    extracted_password = None
+    
+    for url in request.urls:
+        clean_url, pwd = _extract_password_from_url(url)
+        clean_urls.append(clean_url)
+        # Use first extracted password if no explicit password provided
+        if not extracted_password and pwd:
+            extracted_password = pwd
+    
+    password = request.password or extracted_password
+    
     os.makedirs(request.output_parent, exist_ok=True)
     return await run_multi_download(
-        request.urls,
+        clean_urls,
         request.output_parent,
         provider=request.provider,
         mode=request.mode,
         headless=request.headless,
+        password=password,
         create_zip=request.create_zip,
         max_rounds=request.max_rounds,
         step_wait_ms=request.step_wait_ms,

@@ -1,10 +1,12 @@
 {
   "mcpServers": {
     "dicom-downloader": {
-      "command": "python",
-      "args": ["-m", "dicom_mcp.server"],
+      "command": "npx",
+      "args": ["-y", "dicom-mcp"],
       "env": {
-        "PYTHONPATH": "/Users/qinxiaoqiang/Downloads/dicom_mcp:/Users/qinxiaoqiang/Downloads/dicom_download"
+        "DICOM_DEFAULT_OUTPUT_DIR": "/Users/qinxiaoqiang/Downloads/dicom_downloads",
+        "DICOM_DEFAULT_MAX_ROUNDS": "3",
+        "DICOM_DEFAULT_STEP_WAIT_MS": "40"
       }
     }
   }

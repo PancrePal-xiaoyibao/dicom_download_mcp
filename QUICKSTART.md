@@ -110,7 +110,10 @@ python -m dicom_mcp.server
 
 1. Ensure you have Node.js 16+ installed
 2. Edit `~/.config/Claude/claude_desktop_config.json` (or equivalent for your OS)
-3. Add the server configuration:
+
+**⚠️ IMPORTANT: You MUST modify `DICOM_DEFAULT_OUTPUT_DIR` to use an absolute path!**
+
+3. Add the server configuration (replace path with your actual directory):
 ```json
 {
   "mcpServers": {
@@ -118,7 +121,7 @@ python -m dicom_mcp.server
       "command": "npx",
       "args": ["-y", "dicom-mcp"],
       "env": {
-        "DICOM_DEFAULT_OUTPUT_DIR": "./dicom_downloads",
+        "DICOM_DEFAULT_OUTPUT_DIR": "/Users/your-username/Downloads/dicom_downloads",
         "DICOM_DEFAULT_MAX_ROUNDS": "3",
         "DICOM_DEFAULT_STEP_WAIT_MS": "40"
       }
@@ -126,15 +129,23 @@ python -m dicom_mcp.server
   }
 }
 ```
+
 4. Restart Claude Desktop
 5. The "dicom-downloader" tool should appear in Claude
 
-**Note:** The first run will take longer as it installs Python dependencies automatically
+**Configuration Requirements:**
+- `DICOM_DEFAULT_OUTPUT_DIR` **[MUST BE MODIFIED]**: Use absolute path (full path)
+  - ❌ Do NOT use `./dicom_downloads` (relative path will save files to IDE default directory)
+  - ✅ Example macOS: `/Users/username/Downloads/dicom_downloads`
+  - ✅ Example Linux: `/home/username/dicom_downloads`
+  - ✅ Example Windows: `C:\\Users\\username\\Downloads\\dicom_downloads`
 
-**Environment Variables** (optional, can customize):
-- `DICOM_DEFAULT_OUTPUT_DIR`: Directory to save DICOM files (default: `./dicom_downloads`)
-- `DICOM_DEFAULT_MAX_ROUNDS`: Number of scan rounds (default: `3`)
-- `DICOM_DEFAULT_STEP_WAIT_MS`: Delay between frames in milliseconds (default: `40`)
+**Environment Variables**:
+- `DICOM_DEFAULT_OUTPUT_DIR`: Absolute path to save DICOM files **[REQUIRED TO MODIFY]**
+- `DICOM_DEFAULT_MAX_ROUNDS`: Number of scan rounds (default: `3`, optional)
+- `DICOM_DEFAULT_STEP_WAIT_MS`: Delay between frames in milliseconds (default: `40`, optional)
+
+**Note:** The first run will take longer as it installs Python dependencies automatically
 
 ## Basic Usage Examples
 

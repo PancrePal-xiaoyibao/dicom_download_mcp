@@ -66,3 +66,11 @@ dicom_downloads/
 
 # Playwright
 browsers/
+
+# Sensitive files (URLs, logs, test data)
+*.txt
+*.log
+urls.txt
+urls_*.txt
+download.log
+run.log

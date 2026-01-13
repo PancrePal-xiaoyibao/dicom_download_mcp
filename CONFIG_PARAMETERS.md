@@ -1,8 +1,14 @@
 # MCP 配置参数说明
 
+## ⚠️ 重要：必须先修改配置参数
+
+在 npx 安装中，**必须设置绝对路径的本地下载目录**，不能使用相对路径 `./dicom_downloads`。
+相对路径会导致文件被安装到 IDE 工具的默认目录，造成文件丢失或难以找到。
+
 ## 快速配置（Claude Desktop）
 
-在 `claude_desktop_config.json` 中，可通过环境变量预设默认值：
+在 `claude_desktop_config.json` 中，可通过环境变量预设默认值。
+**请将 `DICOM_DEFAULT_OUTPUT_DIR` 修改为你指定的绝对路径目录：**
 
 ```json
 {
@@ -11,7 +17,7 @@
       "command": "npx",
       "args": ["-y", "dicom-mcp"],
       "env": {
-        "DICOM_DEFAULT_OUTPUT_DIR": "./dicom_downloads",
+        "DICOM_DEFAULT_OUTPUT_DIR": "/Users/你的用户名/Downloads/dicom_downloads",
         "DICOM_DEFAULT_MAX_ROUNDS": "3",
         "DICOM_DEFAULT_STEP_WAIT_MS": "40"
       }
@@ -22,11 +28,33 @@
 
 ### 环境变量说明
 
-| 环境变量 | 类型 | 默认值 | 说明 |
-|---------|------|-------|------|
-| `DICOM_DEFAULT_OUTPUT_DIR` | string | `./dicom_downloads` | 默认输出目录 |
-| `DICOM_DEFAULT_MAX_ROUNDS` | string | `3` | 默认扫描次数 |
-| `DICOM_DEFAULT_STEP_WAIT_MS` | string | `40` | 默认帧间延迟 (毫秒) |
+| 环境变量 | 类型 | 说明 |
+|---------|------|------|
+| `DICOM_DEFAULT_OUTPUT_DIR` | string | **[必须修改] 绝对路径的本地下载目录。例如：`/Users/username/Downloads/dicom_downloads` 或 `/home/user/dicom_downloads`** |
+| `DICOM_DEFAULT_MAX_ROUNDS` | string | 默认扫描次数 (可选，默认值：`3`) |
+| `DICOM_DEFAULT_STEP_WAIT_MS` | string | 默认帧间延迟 (毫秒，可选，默认值：`40`) |
+
+### DICOM_DEFAULT_OUTPUT_DIR 配置示例
+
+#### macOS
+```json
+"DICOM_DEFAULT_OUTPUT_DIR": "/Users/qinxiaoqiang/Downloads/dicom_downloads"
+```
+
+#### Linux
+```json
+"DICOM_DEFAULT_OUTPUT_DIR": "/home/username/dicom_downloads"
+```
+
+#### Windows
+```json
+"DICOM_DEFAULT_OUTPUT_DIR": "C:\\Users\\username\\Downloads\\dicom_downloads"
+```
+
+**重要提示：** 
+- ✅ 使用绝对路径（完整路径）
+- ❌ 不要使用相对路径如 `./dicom_downloads`
+- ✅ 确保目录存在或程序有权限创建
 
 ---
 

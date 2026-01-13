@@ -46,6 +46,8 @@ python -m dicom_mcp.server
 
 ### 与 Claude/LLM 集成
 
+#### 方式 1: 本地 Python 部署
+
 编辑 Claude Desktop 配置 (例如 `~/.config/Claude/claude_desktop_config.json`):
 
 ```json
@@ -61,6 +63,47 @@ python -m dicom_mcp.server
   }
 }
 ```
+
+#### 方式 2: NPX 部署 (推荐)
+
+使用 npx，可以直接运行 MCP 服务器，无需手动配置。
+
+**⚠️ 重要：必须设置 `DICOM_DEFAULT_OUTPUT_DIR` 为绝对路径，不能使用相对路径 `./dicom_downloads`**
+
+```json
+{
+  "mcpServers": {
+    "dicom-downloader": {
+      "command": "npx",
+      "args": ["-y", "dicom-mcp"],
+      "env": {
+        "DICOM_DEFAULT_OUTPUT_DIR": "/Users/你的用户名/Downloads/dicom_downloads",
+        "DICOM_DEFAULT_MAX_ROUNDS": "3",
+        "DICOM_DEFAULT_STEP_WAIT_MS": "40"
+      }
+    }
+  }
+}
+```
+
+**配置要求：**
+- `DICOM_DEFAULT_OUTPUT_DIR` **[必须修改]**: 使用绝对路径（完整路径）
+  - ❌ 不要使用相对路径如 `./dicom_downloads` (相对路径会导致文件保存到 IDE 默认目录)
+  - ✅ macOS 示例: `/Users/username/Downloads/dicom_downloads`
+  - ✅ Linux 示例: `/home/username/dicom_downloads`
+  - ✅ Windows 示例: `C:\\Users\\username\\Downloads\\dicom_downloads`
+
+此方式的优势：
+- 自动处理 Python 依赖检测
+- 首次运行时自动安装所需包
+- 无需手动配置 PYTHONPATH
+- 跨操作系统兼容
+- 支持环境变量设置默认参数：
+  - `DICOM_DEFAULT_OUTPUT_DIR`: 下载文件的绝对路径目录 **[必须修改]**
+  - `DICOM_DEFAULT_MAX_ROUNDS`: 默认扫描轮数 (可选，默认值: `3`)
+  - `DICOM_DEFAULT_STEP_WAIT_MS`: 默认帧间延迟 (可选，默认值: `40`)
+
+**注意**: 首次运行可能需要 2-3 分钟用于安装 Python 依赖，后续运行会更快。
 
 ## 实时进度反馈
 

@@ -5,6 +5,149 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/)，
 版本号遵循 [Semantic Versioning](https://semver.org/)。
 
+## [1.2.5] - 2025-01-13
+
+### 改进
+
+- **支持多格式密码提取**: 增强密码识别的灵活性
+  - 支持：`安全码:8492`、`密码:8492`、`password:8492`、`code:8492`、`验证码:8492`
+  - 同时支持半角冒号 `:` 和全角冒号 `：`
+  - 自动清理 URL 中的密码部分
+  - 添加诊断日志显示提取的密码
+
+## [1.2.4] - 2025-01-13
+
+### 改进
+
+- **标准化安全码提取**: 简化并规范化密码提取逻辑
+  - 只支持标准格式：`URL 安全码:8492` 或 `URL 安全码：8492`
+  - 自动清理 URL 中的安全码部分
+  - 添加诊断日志显示提取的密码
+  - 代码更清晰，性能更好
+
+## [1.2.3] - 2025-01-13
+
+### 新功能
+
+- **自动密码提取**: 从 URL 中自动识别和提取安全码/密码
+  - 支持多种格式：`安全码:8492`、`密码:8492`、`password:8492`、`code:8492`
+  - 用户只需粘贴原始链接，无需手动提取密码
+  - 自动清理 URL，将密码传递给下载脚本
+  - 例如：`https://ylyyx.shdc.org.cn/code.html?... 安全码:8492`
+
+## [1.2.2] - 2025-01-13
+
+### 新功能
+
+- **安全码/密码支持**: 支持需要安全码（password）的医院链接
+  - 添加 `password` 参数到 `download_dicom` 和 `batch_download_dicom` 工具
+  - 自动将密码传递给底层下载脚本
+  - 用法：提供 URL 和密码参数即可自动填入
+
+## [1.2.1] - 2025-01-13
+
+### 改进
+
+- **增强的路径解析**: 改进 dicom_download 查找逻辑
+  - 支持本地开发、NPM 包和 PyPI 安装等多种部署方式
+  - 添加诊断日志，显示查找的路径和找到的位置
+  - 优化查找顺序，确保 multi_download.py 存在
+
+## [1.2.0] - 2025-01-13
+
+### 新功能
+
+- **实时下载进度反馈**: 在下载过程中向用户显示详细的进度信息
+  - 下载开始：显示下载数量、输出目录、扫描参数
+  - 下载进行中：显示逐个 URL 的处理进度 [1/N], [2/N]...
+  - 下载完成：显示每个 URL 保存的文件数
+  - 最终汇总：显示总共下载的文件数量
+  - 失败处理：显示详细的错误信息
+
+### 改进
+
+- **可选的 pip 进度显示**: 添加环保变量控制 pip 安装输出
+  - 默认：抑制 pip 输出（用于 Claude Desktop，避免 JSON 污染）
+  - 调试模式：设置 `DICOM_MCP_VERBOSE=1` 显示 pip 进度
+  - 用法：`DICOM_MCP_VERBOSE=1 npx dicom-mcp@latest`
+
+## [1.1.8] - 2025-01-13
+
+### 修复
+
+- **pip 输出完全抑制**: 彻底解决 pip 安装大量日志污染 JSON 消息流
+  - 原因：pip 的 stdout 包含 Looking in、Installing、Requirements 等大量进度信息
+  - 解决：
+    - 添加 `-q`（quiet）参数到 pip 命令
+    - 改用 `stdio: 'pipe'` 完全抑制 stdout 输出
+  - 影响：MCP Inspector 现在可以正常运行，无 JSON 解析错误
+
+## [1.1.7] - 2025-01-13
+
+### 修复
+
+- **pip 安装输出污染**: 修复 `installLocalPackage` 函数中 pip 的 stdout 输出污染 JSON 流
+  - 原因：使用 `stdio: 'inherit'` 导致 pip 的 "Looking in..." 输出混入 stdout
+  - 解决：改为 `stdio: ['inherit', 'pipe', 'inherit']`，只转发 stderr，抑制 stdout
+
+## [1.1.6] - 2025-01-13
+
+### 修复
+
+- **Node.js 启动器输出污染**: 修复 `bin/dicom-mcp.js` 的所有日志输出到 stdout
+  - 原因：Node.js 启动脚本使用 `console.log` 输出到 stdout，污染 MCP JSON 消息流
+  - 解决：将所有日志改为 `console.error` 输出到 stderr
+  - 影响：MCP Inspector 现在可以正确启动和通信
+
+## [1.1.5] - 2025-01-13
+
+### 修复
+
+- **代码缺陷**: 修复重复导入 `sys` 模块导致的 `NameError`
+  - 原因：在函数内部重复使用 `import sys`，导致作用域问题
+  - 解决：移除重复的导入语句，使用文件顶部已导入的 `sys` 模块
+
+## [1.1.4] - 2025-01-13
+
+### 修复
+
+- **MCP 协议兼容性**: 修复进度提示信息污染 JSON 消息流
+  - 原因：部分 `print()` 调用未指向 stderr，导致进度信息混入 stdout
+  - 解决：将所有进度提示输出到 stderr，保持 stdout 纯 JSON
+  - 影响：MCP Inspector 现在可以正确解析服务器响应
+
+## [1.1.3] - 2025-01-13
+
+### 修复
+
+- **NPM 包完整性**: 确保 `dicom_download` 源代码目录被打包到 NPM 发行版本
+  - 原因：NPX 部署时找不到 `multi_download.py`（dicom_download 不在项目中）
+  - 解决：将 dicom_download 复制到项目目录并确保被打包
+
+## [1.1.2] - 2025-01-13
+
+### 修复
+
+- **MCP 协议兼容性**: 修复进度输出破坏 JSON 消息流的问题
+  - 原因：进度信息被输出到 stdout，而 MCP 协议要求 stdout 只能是 JSON 格式
+  - 解决：将进度日志重定向到 stderr，保持 stdout 纯 JSON
+  - 影响：MCP Inspector 和 Claude Desktop 现在可以正确解析消息
+
+## [1.1.1] - 2025-01-13
+
+### 修复
+
+- **NPM 包打包缺失**: 修复 package.json 的 files 字段，添加 `dicom_download` 目录到打包列表
+  - 原因：NPX 部署时找不到 `multi_download.py` 
+  - 解决：确保 `dicom_download` 目录被正确打包到 NPM 发行版本
+
+### 更改
+
+- **配置文档更新**
+  - 强调 `DICOM_DEFAULT_OUTPUT_DIR` 必须使用绝对路径，不能使用相对路径
+  - 在所有文档中添加平台特定的路径示例 (macOS/Linux/Windows)
+  - Claude Desktop 配置示例中标记必修参数
+
 ## [1.0.0] - 2025-01-13
 
 ### 新增功能

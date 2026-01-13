@@ -20,12 +20,12 @@ const rootDir = join(__dirname, '..');
 function checkPython() {
   try {
     const version = execSync('python3 --version', { encoding: 'utf-8' }).trim();
-    console.log(`✓ Found Python: ${version}`);
+    console.error(`✓ Found Python: ${version}`);
     return 'python3';
   } catch {
     try {
       const version = execSync('python --version', { encoding: 'utf-8' }).trim();
-      console.log(`✓ Found Python: ${version}`);
+      console.error(`✓ Found Python: ${version}`);
       return 'python';
     } catch {
       console.error('✗ Error: Python is not installed or not in PATH');
@@ -43,7 +43,7 @@ function checkDependencies(pythonCmd) {
     execSync(`${pythonCmd} -c "import mcp; import pydantic; import playwright"`, {
       stdio: 'pipe',
     });
-    console.log('✓ All Python dependencies are installed');
+    console.error('✓ All Python dependencies are installed');
   } catch {
     console.error('✗ Error: Required Python packages are not installed');
     console.error('\nPlease install the dependencies:');
@@ -57,7 +57,7 @@ function checkDependencies(pythonCmd) {
  * Install the local dicom_mcp package
  */
 function installLocalPackage(pythonCmd) {
-  console.log('Setting up local dicom_mcp package...');
+  console.error('Setting up local dicom_mcp package...');
   try {
     // Check if pyproject.toml exists
     const pyprojectPath = join(rootDir, 'pyproject.toml');
@@ -68,10 +68,16 @@ function installLocalPackage(pythonCmd) {
       process.exit(1);
     }
 
-    execSync(`${pythonCmd} -m pip install -e "${rootDir}"`, {
-      stdio: 'inherit',
+    // Check if verbose mode is enabled (for debugging)
+    const verbose = process.env.DICOM_MCP_VERBOSE === '1' || process.env.DICOM_MCP_VERBOSE === 'true';
+    const quietFlag = verbose ? '' : '-q';
+    const stdioOption = verbose ? 'inherit' : 'pipe';
+    
+    // Install with optional verbosity
+    execSync(`${pythonCmd} -m pip install ${quietFlag} -e "${rootDir}"`, {
+      stdio: stdioOption,
     });
-    console.log('✓ Local dicom_mcp package installed');
+    console.error('✓ Local dicom_mcp package installed');
   } catch (error) {
     console.error('✗ Error: Failed to install dicom_mcp');
     console.error('Make sure:');
@@ -87,10 +93,10 @@ function installLocalPackage(pythonCmd) {
  * Launch the MCP server
  */
 function launchServer(pythonCmd) {
-  console.log('\n' + '='.repeat(70));
-  console.log('🚀 Starting DICOM MCP Server');
-  console.log('='.repeat(70));
-  console.log('Listening on stdio transport\n');
+  console.error('\n' + '='.repeat(70));
+  console.error('🚀 Starting DICOM MCP Server');
+  console.error('='.repeat(70));
+  console.error('Listening on stdio transport\n');
 
   const env = {
     ...process.env,
@@ -117,13 +123,13 @@ function launchServer(pythonCmd) {
 
   // Handle graceful shutdown
   process.on('SIGINT', () => {
-    console.log('\n\nShutting down DICOM MCP Server...');
+    console.error('\n\nShutting down DICOM MCP Server...');
     server.kill();
     process.exit(0);
   });
 
   process.on('SIGTERM', () => {
-    console.log('\n\nShutting down DICOM MCP Server...');
+    console.error('\n\nShutting down DICOM MCP Server...');
     server.kill();
     process.exit(0);
   });
@@ -133,7 +139,7 @@ function launchServer(pythonCmd) {
  * Main execution
  */
 function main() {
-  console.log('DICOM MCP Server - Node.js Launcher\n');
+  console.error('DICOM MCP Server - Node.js Launcher\n');
 
   // Check Python installation
   const pythonCmd = checkPython();

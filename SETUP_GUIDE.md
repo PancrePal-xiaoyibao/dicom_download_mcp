@@ -51,7 +51,44 @@ Change the path as needed.
 
 ## Integration with Claude Desktop
 
-### Option A: Using the Provided Config
+### Option A: Using NPX (Recommended)
+
+1. Locate Claude Desktop config directory:
+   - **macOS**: `~/Library/Application\ Support/Claude/`
+   - **Windows**: `%APPDATA%\Claude\`
+   - **Linux**: `~/.config/Claude/`
+
+2. Open or create `claude_desktop_config.json`
+
+3. **⚠️ IMPORTANT: Modify `DICOM_DEFAULT_OUTPUT_DIR` to use an absolute path!**
+
+   Add the server configuration:
+```json
+{
+  "mcpServers": {
+    "dicom-downloader": {
+      "command": "npx",
+      "args": ["-y", "dicom-mcp"],
+      "env": {
+        "DICOM_DEFAULT_OUTPUT_DIR": "/Users/qinxiaoqiang/Downloads/dicom_downloads",
+        "DICOM_DEFAULT_MAX_ROUNDS": "3",
+        "DICOM_DEFAULT_STEP_WAIT_MS": "40"
+      }
+    }
+  }
+}
+```
+
+**Configuration:**
+- Replace `/Users/qinxiaoqiang/Downloads/dicom_downloads` with your actual absolute path
+- ❌ Do NOT use relative paths like `./dicom_downloads`
+- ✅ Use full paths: `/Users/username/...` (macOS/Linux) or `C:\\Users\\username\\...` (Windows)
+
+4. Restart Claude Desktop
+
+5. Verify the server appears in Claude (should show new tools available)
+
+### Option B: Using Local Python Deployment
 
 1. Locate Claude Desktop config directory:
    - **macOS**: `~/Library/Application\ Support/Claude/`

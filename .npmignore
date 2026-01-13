@@ -64,3 +64,27 @@ urls_*.txt
 urls.txt
 *.tmp
 temp/
+
+# dicom_download 目录中的无关文件 (只保留必要的 Python 模块)
+dicom_download/.git/
+dicom_download/.gitignore
+dicom_download/.DS_Store
+dicom_download/.pytest_cache/
+dicom_download/__pycache__/
+dicom_download/*.md
+dicom_download/README*
+dicom_download/CONTRIBUTING.md
+dicom_download/CHANGELOG.md
+dicom_download/PR_SUBMIT_SUMMARY.md
+dicom_download/LICENSE
+dicom_download/tests/
+dicom_download/test_*.py
+dicom_download/debug_*.py
+dicom_download/pytest.ini
+dicom_download/*.txt
+dicom_download/*.log
+dicom_download/.env*
+dicom_download/*.egg-info/
+dicom_download/dist/
+dicom_download/build/
+dicom_download/cloud-dicom-downloader/
