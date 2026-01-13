@@ -24,6 +24,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+test_downloads/
+test/
 
 # PyInstaller
 *.manifest
@@ -69,8 +71,14 @@ browsers/
 
 # Sensitive files (URLs, logs, test data)
 *.txt
+!urls_example.txt
 *.log
 urls.txt
 urls_*.txt
+test/urls*.txt
+test/test_url*.txt
 download.log
 run.log
+test_downloads/
+claude_desktop_config.json
+*.bak

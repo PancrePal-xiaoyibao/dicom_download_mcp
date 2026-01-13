@@ -135,6 +135,34 @@ python -m dicom_mcp.server
 
 详见 [PROGRESS_FEEDBACK.md](PROGRESS_FEEDBACK.md)
 
+## 目录结构
+
+```
+dicom_mcp/
+├── bin/                    # 可执行脚本
+├── dicom_mcp/              # MCP 服务器核心代码
+│   ├── __init__.py
+│   └── server.py           # 主服务器实现
+├── dicom_download/         # 下载引擎(子模块)
+│   ├── multi_download.py   # 多URL调度
+│   ├── shdc_download_dicom.py  # 复肿提供商
+│   ├── tjmucih_download_dicom.py  # 天肿提供商
+│   ├── nyfy_download_dicom.py     # 宁夏总医院
+│   ├── password_manager.py        # 密码管理
+│   └── urls_example.txt          # URL格式示例
+├── scripts/                # 安装和验证脚本
+├── test/                   # 测试文件和文档
+│   ├── test_tools.py       # 单元测试
+│   ├── test_mcp_inspector.sh  # MCP Inspector测试
+│   └── (开发文档和测试记录)
+├── README.md               # 英文文档
+├── README_CN.md            # 中文文档
+├── CHANGELOG.md            # 版本变更日志
+└── package.json            # npm包配置
+```
+
+**注意**: `test/` 目录包含测试文件和开发文档,不会发布到npm。实际URL和敏感信息已通过.gitignore排除。
+
 ## 可用工具
 
 ### 1. `download_dicom`
@@ -236,14 +264,46 @@ batch_download_dicom(
 
 ### 密码保护的 URL
 
+**支持多种密码格式自动识别**:
+
 ```python
-# 下载需要密码/验证码的 URL
+# 方式1: 单个URL - 直接传递password参数
 download_dicom(
-    url="https://example.medicalimagecloud.com/viewer?id=XYZ",
-    password="secret123",
-    provider="cloud"
+    url="https://ylyyx.shdc.org.cn/code.html?share_id=xxx",
+    password="1234",
+    provider="fz"
 )
+
+# 方式2: 批量URL - 使用passwords字典映射
+batch_download_dicom(
+    urls=[
+        "https://ylyyx.shdc.org.cn/code.html?share_id=xxx-1",
+        "https://ylyyx.shdc.org.cn/code.html?share_id=xxx-2",
+        "https://ylyyx.shdc.org.cn/code.html?share_id=xxx-3",
+    ],
+    passwords={
+        "https://ylyyx.shdc.org.cn/code.html?share_id=xxx-1": "1234",
+        "https://ylyyx.shdc.org.cn/code.html?share_id=xxx-3": "5678"
+        # xxx-2 无密码,自动跳过
+    }
+)
+
+# 方式3: 从文件读取(支持多种密码格式)
+# urls.txt 示例:
+# https://ylyyx.shdc.org.cn/code.html?share_id=xxx-1 安全码:1234
+# https://ylyyx.shdc.org.cn/code.html?share_id=xxx-2 密码:5678
+# https://ylyyx.shdc.org.cn/code.html?share_id=xxx-3 password:9012
+# https://ylyyx.shdc.org.cn/code.html?share_id=xxx-4 #无密码
 ```
+
+**密码功能特性** (v1.2.7):
+- ✅ **自动识别**: 支持`安全码:`、`密码:`、`password:`、`code:`等格式
+- ✅ **自动输入**: 虚拟键盘自动点击输入密码
+- ✅ **智能提交**: 识别自动提交机制,优化等待时间
+- ✅ **手动兜底**: 自动输入失败时支持手动输入(headless=false)
+- ✅ **混合模式**: 批量下载支持有密码和无密码URL混合
+
+详见示例文件: `dicom_download/urls_example.txt`
 
 ## 在 Claude 中使用
 
