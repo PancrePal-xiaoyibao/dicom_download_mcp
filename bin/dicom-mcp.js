@@ -59,12 +59,25 @@ function checkDependencies(pythonCmd) {
 function installLocalPackage(pythonCmd) {
   console.log('Setting up local dicom_mcp package...');
   try {
+    // Check if pyproject.toml exists
+    const pyprojectPath = join(rootDir, 'pyproject.toml');
+    if (!fs.existsSync(pyprojectPath)) {
+      console.error('✗ Error: pyproject.toml not found in ' + rootDir);
+      console.error('This might be an npm package installation issue.');
+      console.error('Make sure dicom_mcp and pyproject.toml are included in the npm package.');
+      process.exit(1);
+    }
+
     execSync(`${pythonCmd} -m pip install -e "${rootDir}"`, {
       stdio: 'inherit',
     });
     console.log('✓ Local dicom_mcp package installed');
   } catch (error) {
     console.error('✗ Error: Failed to install dicom_mcp');
+    console.error('Make sure:');
+    console.error('  1. Python 3.9+ is installed');
+    console.error('  2. You have internet connection for pip downloads');
+    console.error('  3. The dicom_mcp and pyproject.toml files are present');
     console.error(error.message);
     process.exit(1);
   }

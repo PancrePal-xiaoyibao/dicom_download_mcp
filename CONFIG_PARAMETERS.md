@@ -1,8 +1,49 @@
 # MCP 配置参数说明
 
-## 新增参数
+## 快速配置（Claude Desktop）
 
-MCP 服务器现已支持以下扩展参数：
+在 `claude_desktop_config.json` 中，可通过环境变量预设默认值：
+
+```json
+{
+  "mcpServers": {
+    "dicom-downloader": {
+      "command": "npx",
+      "args": ["-y", "dicom-mcp"],
+      "env": {
+        "DICOM_DEFAULT_OUTPUT_DIR": "./dicom_downloads",
+        "DICOM_DEFAULT_MAX_ROUNDS": "3",
+        "DICOM_DEFAULT_STEP_WAIT_MS": "40"
+      }
+    }
+  }
+}
+```
+
+### 环境变量说明
+
+| 环境变量 | 类型 | 默认值 | 说明 |
+|---------|------|-------|------|
+| `DICOM_DEFAULT_OUTPUT_DIR` | string | `./dicom_downloads` | 默认输出目录 |
+| `DICOM_DEFAULT_MAX_ROUNDS` | string | `3` | 默认扫描次数 |
+| `DICOM_DEFAULT_STEP_WAIT_MS` | string | `40` | 默认帧间延迟 (毫秒) |
+
+---
+
+## 必填参数
+
+### 1. 本地保存目录 (output_dir / output_parent)
+- **参数名**: `output_dir` (单个下载) 或 `output_parent` (批量下载)
+- **类型**: 字符串 (string)
+- **默认值**: `./dicom_downloads` (当前目录下的 dicom_downloads 文件夹)
+- **是否必填**: 是 (可选，但推荐显式指定)
+- **描述**: 用于保存下载的 DICOM 文件的本地目录
+- **说明**: 
+  - 如果目录不存在，会自动创建
+  - 支持相对路径 (相对于当前工作目录) 和绝对路径
+  - 建议使用绝对路径以避免路径混淆
+
+## 可选参数
 
 ### 1. 扫描次数 (max_rounds)
 - **参数名**: `max_rounds`
@@ -38,19 +79,20 @@ MCP 服务器现已支持以下扩展参数：
 }
 ```
 
-**示例 1: 默认参数**
+**示例 1: 最小配置 (仅指定必填参数)**
 ```json
 {
   "url": "https://ylyyx.shdc.org.cn/viewer?share_id=ABC123",
-  "output_dir": "./downloads"
+  "output_dir": "./dicom_downloads"
 }
 ```
+说明：`output_dir` 是必须指定的，其他参数如 `max_rounds` 和 `step_wait_ms` 将使用默认值
 
-**示例 2: 自定义扫描参数**
+**示例 2: 自定义扫描参数 (output_dir + 扫描参数)**
 ```json
 {
   "url": "https://ylyyx.shdc.org.cn/viewer?share_id=ABC123",
-  "output_dir": "./downloads",
+  "output_dir": "./my_dicom_downloads",
   "max_rounds": 5,
   "step_wait_ms": 50
 }
@@ -152,8 +194,25 @@ step_wait_ms: 100
 
 ## 在 Claude 中使用
 
-在 Claude 中与 MCP 交互时，可以这样指定参数：
+在 Claude 中与 MCP 交互时，**必须指定本地保存目录**：
 
+### 示例 1: 最小配置 (仅指定下载URL和保存目录)
+```
+"Download DICOM from https://ylyyx.shdc.org.cn/viewer?share_id=ABC123 
+and save to ./my_dicom_downloads"
+```
+
+Claude 会自动将其转换为:
+```json
+{
+  "url": "https://ylyyx.shdc.org.cn/viewer?share_id=ABC123",
+  "output_dir": "./my_dicom_downloads",
+  "max_rounds": 3,
+  "step_wait_ms": 40
+}
+```
+
+### 示例 2: 配置扫描参数
 ```
 "Download DICOM from https://ylyyx.shdc.org.cn/viewer?share_id=ABC123 
 with 5 scan rounds and 50ms delay between frames,
@@ -217,19 +276,26 @@ cmd.extend(["--step-wait-ms", str(step_wait_ms)])
 - ⚠️ validate_url: 不适用
 - ⚠️ list_supported_providers: 不适用
 
-## 其他参数速查表
+## 参数速查表
 
+### 必填参数
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|-------|------|
 | url | string | 必需 | 医院影像查看器 URL |
-| output_dir | string | ./dicom_downloads | 输出目录 |
+| output_dir | string | **./dicom_downloads** | **输出目录 (必须指定)** |
+| urls | array | 必需 (批量) | 医院影像查看器 URL 列表 (批量下载时) |
+| output_parent | string | **./dicom_downloads** | **批量输出父目录 (必须指定)** |
+
+### 可选参数
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|-------|------|
 | provider | string | auto | 提供者类型 (tz/fz/nyfy/cloud) |
 | mode | string | all | 下载模式 (all/diag/nondiag) |
 | headless | bool | true | 是否无界面运行 |
 | password | string | null | 分享密码或验证码 |
 | create_zip | bool | true | 是否创建 ZIP 压缩包 |
-| max_rounds | int | 3 | 扫描轮数 |
-| step_wait_ms | int | 40 | 帧间延迟 (毫秒) |
+| max_rounds | int | 3 | 扫描轮数 (可选，有默认值) |
+| step_wait_ms | int | 40 | 帧间延迟 (毫秒，可选，有默认值) |
 
 ## 故障排除
 

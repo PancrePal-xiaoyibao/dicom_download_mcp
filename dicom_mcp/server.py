@@ -48,6 +48,16 @@ mcp = FastMCP("dicom-downloader")
 
 
 # ============================================================================
+# Configuration from environment variables
+# ============================================================================
+
+# 从环境变量读取配置，支持在 Claude Desktop 中预设默认值
+_DEFAULT_OUTPUT_DIR = os.getenv("DICOM_DEFAULT_OUTPUT_DIR", "./dicom_downloads")
+_DEFAULT_MAX_ROUNDS = int(os.getenv("DICOM_DEFAULT_MAX_ROUNDS", "3"))
+_DEFAULT_STEP_WAIT_MS = int(os.getenv("DICOM_DEFAULT_STEP_WAIT_MS", "40"))
+
+
+# ============================================================================
 # Models
 # ============================================================================
 
@@ -57,7 +67,7 @@ class DownloadRequest(BaseModel):
 
     url: str = Field(description="Medical imaging viewer URL to download from")
     output_dir: str = Field(
-        default="./dicom_downloads",
+        default=_DEFAULT_OUTPUT_DIR,
         description="Directory to save downloaded DICOM files",
     )
     provider: Optional[str] = Field(
@@ -78,11 +88,11 @@ class DownloadRequest(BaseModel):
         default=True, description="Create ZIP archive of downloaded files"
     )
     max_rounds: int = Field(
-        default=3,
+        default=_DEFAULT_MAX_ROUNDS,
         description="Maximum number of scan rounds (扫描次数，默认 3)",
     )
     step_wait_ms: int = Field(
-        default=40,
+        default=_DEFAULT_STEP_WAIT_MS,
         description="Delay between steps in milliseconds (延迟时间，默认 40ms)",
     )
 
@@ -92,7 +102,7 @@ class BatchDownloadRequest(BaseModel):
 
     urls: list[str] = Field(description="List of URLs to download from")
     output_parent: str = Field(
-        default="./dicom_downloads",
+        default=_DEFAULT_OUTPUT_DIR,
         description="Parent directory for all downloads",
     )
     provider: str = Field(
@@ -102,11 +112,11 @@ class BatchDownloadRequest(BaseModel):
     headless: bool = Field(default=True, description="Run in headless mode")
     create_zip: bool = Field(default=True, description="Create ZIP archives")
     max_rounds: int = Field(
-        default=3,
+        default=_DEFAULT_MAX_ROUNDS,
         description="Maximum number of scan rounds (扫描次数，默认 3)",
     )
     step_wait_ms: int = Field(
-        default=40,
+        default=_DEFAULT_STEP_WAIT_MS,
         description="Delay between steps in milliseconds (延迟时间，默认 40ms)",
     )
 

@@ -46,6 +46,8 @@ python -m dicom_mcp.server
 
 ### Integration with Claude/LLM
 
+#### Method 1: Local Python Deployment
+
 Add to your MCP client configuration (e.g., Claude Desktop):
 
 ```json
@@ -61,6 +63,38 @@ Add to your MCP client configuration (e.g., Claude Desktop):
   }
 }
 ```
+
+#### Method 2: NPX Deployment (Recommended)
+
+Using npx, you can run the MCP server directly without manual setup:
+
+```json
+{
+  "mcpServers": {
+    "dicom-downloader": {
+      "command": "npx",
+      "args": ["-y", "dicom-mcp"],
+      "env": {
+        "DICOM_DEFAULT_OUTPUT_DIR": "./dicom_downloads",
+        "DICOM_DEFAULT_MAX_ROUNDS": "3",
+        "DICOM_DEFAULT_STEP_WAIT_MS": "40"
+      }
+    }
+  }
+}
+```
+
+This method:
+- Automatically handles Python dependency detection
+- Installs required packages on first run
+- No manual PYTHONPATH configuration needed
+- Works across different operating systems
+- Supports environment variables for default parameters:
+  - `DICOM_DEFAULT_OUTPUT_DIR`: Default directory for downloaded files (default: `./dicom_downloads`)
+  - `DICOM_DEFAULT_MAX_ROUNDS`: Default scan rounds (default: `3`)
+  - `DICOM_DEFAULT_STEP_WAIT_MS`: Default delay between frames in ms (default: `40`)
+
+**Note:** First run may take 2-3 minutes as it installs Python dependencies. Subsequent runs will be faster.
 
 ## Real-Time Progress Feedback
 

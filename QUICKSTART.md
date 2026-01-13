@@ -2,9 +2,31 @@
 
 ## Installation
 
-### 1. Install Dependencies
+Choose one of the deployment methods below:
+
+### Method A: NPX Deployment (Recommended - Easiest)
+
+#### Prerequisites
+- Node.js 16+ (download from https://nodejs.org/)
+- Python 3.9+ (download from https://www.python.org/)
+
+#### Setup
 ```bash
-cd /Users/qinxiaoqiang/Downloads/dicom_mcp
+# NPX will handle everything automatically
+# No installation needed - just use it!
+npx dicom-mcp
+```
+
+### Method B: Local Python Deployment
+
+#### Prerequisites
+- Python 3.9+
+- Playwright (installed via pip)
+
+#### 1. Install Dependencies
+```bash
+# Navigate to your dicom_mcp directory
+cd /path/to/dicom_mcp
 
 # Install the MCP server
 pip install -e .
@@ -13,7 +35,14 @@ pip install -e .
 playwright install chromium
 ```
 
-### 2. Verify Installation
+**Example:**
+```bash
+cd ~/projects/dicom_mcp
+pip install -e .
+playwright install chromium
+```
+
+#### 2. Verify Installation
 ```bash
 # Check if the server can be imported
 python -c "from dicom_mcp.server import mcp; print('✓ MCP server ready')"
@@ -29,7 +58,8 @@ python -c "from common_utils import extract_share_id; print('✓ dicom_download 
 python -m dicom_mcp.server
 ```
 
-### Option B: With Claude Desktop
+### Option B: With Claude Desktop - Local Python Deployment
+
 1. Edit `~/.config/Claude/claude_desktop_config.json` (or equivalent for your OS)
 2. Add the server configuration:
 ```json
@@ -39,14 +69,72 @@ python -m dicom_mcp.server
       "command": "python",
       "args": ["-m", "dicom_mcp.server"],
       "env": {
-        "PYTHONPATH": "/Users/qinxiaoqiang/Downloads/dicom_mcp:/Users/qinxiaoqiang/Downloads/dicom_download"
+        "PYTHONPATH": "/path/to/dicom_mcp:/path/to/dicom_download",
+        "DICOM_DEFAULT_OUTPUT_DIR": "./dicom_downloads",
+        "DICOM_DEFAULT_MAX_ROUNDS": "3",
+        "DICOM_DEFAULT_STEP_WAIT_MS": "40"
       }
     }
   }
 }
 ```
+
+**Replace the paths:**
+- `/path/to/dicom_mcp` → Actual path where you cloned dicom_mcp (e.g., `/Users/username/projects/dicom_mcp`)
+- `/path/to/dicom_download` → Actual path where you cloned dicom_download (e.g., `/Users/username/projects/dicom_download`)
+
+**Example for macOS:**
+```json
+{
+  "mcpServers": {
+    "dicom-downloader": {
+      "command": "python",
+      "args": ["-m", "dicom_mcp.server"],
+      "env": {
+        "PYTHONPATH": "/Users/myusername/dev/dicom_mcp:/Users/myusername/dev/dicom_download",
+        "DICOM_DEFAULT_OUTPUT_DIR": "./dicom_downloads",
+        "DICOM_DEFAULT_MAX_ROUNDS": "3",
+        "DICOM_DEFAULT_STEP_WAIT_MS": "40"
+      }
+    }
+  }
+}
+```
+
 3. Restart Claude Desktop
 4. The "dicom-downloader" tool should appear in Claude
+
+**Note:** You can customize the environment variables to change default behavior
+
+### Option C: With Claude Desktop - NPX Deployment (Recommended)
+
+1. Ensure you have Node.js 16+ installed
+2. Edit `~/.config/Claude/claude_desktop_config.json` (or equivalent for your OS)
+3. Add the server configuration:
+```json
+{
+  "mcpServers": {
+    "dicom-downloader": {
+      "command": "npx",
+      "args": ["-y", "dicom-mcp"],
+      "env": {
+        "DICOM_DEFAULT_OUTPUT_DIR": "./dicom_downloads",
+        "DICOM_DEFAULT_MAX_ROUNDS": "3",
+        "DICOM_DEFAULT_STEP_WAIT_MS": "40"
+      }
+    }
+  }
+}
+```
+4. Restart Claude Desktop
+5. The "dicom-downloader" tool should appear in Claude
+
+**Note:** The first run will take longer as it installs Python dependencies automatically
+
+**Environment Variables** (optional, can customize):
+- `DICOM_DEFAULT_OUTPUT_DIR`: Directory to save DICOM files (default: `./dicom_downloads`)
+- `DICOM_DEFAULT_MAX_ROUNDS`: Number of scan rounds (default: `3`)
+- `DICOM_DEFAULT_STEP_WAIT_MS`: Delay between frames in milliseconds (default: `40`)
 
 ## Basic Usage Examples
 
@@ -195,11 +283,58 @@ The MCP server will:
 
 ## Troubleshooting
 
-### Issue: "Module not found" error
+### Using NPX Deployment
+
+#### Issue: "npx: command not found"
+
+**Solution**: Install Node.js from https://nodejs.org/ (version 16 or later)
+
+#### Issue: "does not appear to be a Python project: neither 'setup.py' nor 'pyproject.toml' found"
+
+**Cause**: The npm package may not include Python files on first install.
+
+**Solution**: 
+1. Update the npm package:
+   ```bash
+   npm install -g dicom-mcp@latest
+   ```
+
+2. Or use the Local Python Deployment method (Option B) instead
+
+3. On subsequent runs, the error should not occur
+
+#### Issue: Python dependency errors when using npx
+
+**Solution**: Ensure Python 3.9+ is installed and in your PATH:
+```bash
+python3 --version
+# If not found, install from https://www.python.org/
+```
+
+#### Issue: "Failed to install dicom_mcp" or slow first run
+
+**Reason**: First run installs Python packages, which may take 2-3 minutes
+
+**Solution**: Wait for installation to complete. You'll see progress messages. Subsequent runs will be faster.
+
+```bash
+# Show progress
+npx -y dicom-mcp
+```
+
+### Using Local Python Deployment
+
+#### Issue: "Module not found" error
 
 **Solution**: Ensure PYTHONPATH includes both dicom_mcp and dicom_download:
 ```bash
-export PYTHONPATH="/Users/qinxiaoqiang/Downloads/dicom_mcp:/Users/qinxiaoqiang/Downloads/dicom_download"
+export PYTHONPATH="/path/to/dicom_mcp:/path/to/dicom_download"
+python -m dicom_mcp.server
+```
+
+**Example:**
+```bash
+export PYTHONPATH="~/projects/dicom_mcp:~/projects/dicom_download"
 python -m dicom_mcp.server
 ```
 
