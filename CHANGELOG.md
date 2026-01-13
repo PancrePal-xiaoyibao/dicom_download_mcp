@@ -5,6 +5,14 @@
 格式遵循 [Keep a Changelog](https://keepachangelog.com/)，
 版本号遵循 [Semantic Versioning](https://semver.org/)。
 
+## [1.2.6] - 2025-01-13
+
+### 修复
+
+- **密码参数名**: 修复密码参数传递给 multi_download.py 的错误
+  - 改为使用 `--cloud-password` 而不是 `--password`
+  - 兼容 multi_download.py 的参数要求
+
 ## [1.2.5] - 2025-01-13
 
 ### 改进

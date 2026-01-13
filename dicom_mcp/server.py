@@ -282,7 +282,8 @@ async def run_multi_download(
             cmd.append("--no-headless")
 
         if password:
-            cmd.extend(["--password", password])
+            # Use cloud-password for fz and cloud providers, others may not need password
+            cmd.extend(["--cloud-password", password])
 
         if not create_zip:
             cmd.append("--no-zip")
